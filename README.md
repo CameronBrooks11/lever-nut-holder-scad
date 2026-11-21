@@ -42,6 +42,7 @@ lever_nut_holder(blocks = [5, 3, 2], style = "vertical", tabs = false);
 `tab_radius`, `tab_height` and `allowance`, with the same defaults as the
 Customizer. It refuses an unknown style, an empty or fractional `blocks`, and
 a screw hole as wide as its tab, with a message saying which.
+`examples/from_another_file.scad` builds a holder this way.
 
 ## Fitting the connectors
 
@@ -75,7 +76,11 @@ errors:
   - **Grip:** where it meets connectors 1 mm taller is one piece of lip for
     each connector.
 - The four refusals, each with its message.
+- The example: one solid, of the size worked out by hand.
 
+Any `ERROR` or `WARNING` from OpenSCAD fails a case that should build.
+`just check` checks the `.scad` files are formatted with
+[topiary](https://github.com/tweag/topiary) 0.8.0; `just fmt` formats them.
 `just images` renders the two pictures in this README. Written against
 OpenSCAD 2026.10.15.
 
