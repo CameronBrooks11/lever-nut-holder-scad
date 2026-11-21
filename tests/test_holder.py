@@ -9,7 +9,8 @@ solid) and measures its bounding box, to within 0.01 mm.
 The fit cases render the holder's "fit" part, where it meets connectors at
 their datasheet size, and expect it to be empty. The grip cases render the
 "grip" part, where it meets connectors 1 mm taller, and expect one piece of
-lip over each connector.
+lip over each connector. The example case renders examples/from_another_file.scad
+and checks it as a shape case. Any ERROR or WARNING fails a case that should build.
 """
 
 import json
@@ -32,10 +33,10 @@ def width(n):
     return 1.9 + 5.6 * n
 
 
-def expected_size(blocks, style, tabs=True):
+def expected_size(blocks, style, tabs=True, tab=TAB):
     """The bounding box the holder should have, worked out by hand."""
     length = WALL + sum(width(n) + ALLOWANCE + WALL for n in blocks)
-    x = length + (2 * TAB if tabs else 0)
+    x = length + (2 * tab if tabs else 0)
     tall = FLOOR + HEIGHT + LIP  # floor to the top of the lip
     deep = DEPTH + 2 * WALL  # front stop to the back wall
     return {
@@ -71,11 +72,11 @@ def measure(path):
     return solids, size, lo
 
 
-def render(openscad, out, params):
+def render(openscad, out, params, scad=SCAD):
     cmd = [openscad, "--hardwarnings", "--export-format", "binstl", "-o", out]
     for name, value in params.items():
         cmd += ["-D", f"{name}={json.dumps(value)}"]
-    return subprocess.run(cmd + [SCAD], capture_output=True, text=True)
+    return subprocess.run(cmd + [scad], capture_output=True, text=True)
 
 
 STYLES = ["horizontal", "horizontal_mirrored", "vertical", "vertical_mirrored"]
@@ -107,6 +108,8 @@ def cases():
         ("refuses a hole wider than the tab", {"tab_radius": 6}, "tab_radius has to be less"),
     ]:
         yield ("refuse", label, params, message)
+    # examples/from_another_file.scad: [5, 3, 3], standing up, 12 mm tabs.
+    yield ("example", "examples/from_another_file.scad", {}, expected_size([5, 3, 3], "vertical", tab=12))
 
 
 def main():
@@ -118,7 +121,8 @@ def main():
             total += 1
             if os.path.exists(out):
                 os.remove(out)
-            result = render(openscad, out, params)
+            scad = os.path.join(ROOT, label) if kind == "example" else SCAD
+            result = render(openscad, out, params, scad)
             errors = [l for l in result.stderr.splitlines() if "WARNING" in l or "ERROR" in l]
             if kind == "refuse":
                 ok = result.returncode != 0 and errors and want in errors[0]
@@ -127,7 +131,8 @@ def main():
                 ok = result.returncode != 0 and "top level object is empty" in result.stderr \
                     and not errors
                 got = "empty" if ok else "the holder meets a connector"
-            elif result.returncode != 0:
+            elif result.returncode != 0 or errors:
+                # A failed assert can leave the exit status at 0, so the messages count too.
                 ok, got = False, f"openscad exited {result.returncode}: {errors[:1]}"
             elif kind == "grip":
                 solids, size, lo = measure(out)

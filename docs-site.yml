@@ -1,1 +1,3 @@
+title: lever-nut-holder-scad
+description: A printable holder for WAGO 221 lever connectors in OpenSCAD, in one row or two, lying flat or standing up
 models: lever_nut_holder.scad
